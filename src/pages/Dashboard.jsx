@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import ResumeUpload from '../components/ResumeUpload';
-import { Plus, History, Briefcase, GraduationCap, ArrowRight, Loader, FileText } from 'lucide-react';
+import { Plus, History, Briefcase, GraduationCap, ArrowRight, Loader, FileText, Trash2, AlertTriangle, X } from 'lucide-react';
 
 const Dashboard = () => {
   const [sessions, setSessions] = useState([]);
@@ -10,6 +10,9 @@ const Dashboard = () => {
   const [experienceLevel, setExperienceLevel] = useState('Fresher');
   const [isCreating, setIsCreating] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [deleteModal, setDeleteModal] = useState({ show: false, sessionId: null, sessionRole: '' });
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [error, setError] = useState(null);
 
   const navigate = useNavigate();
 
@@ -19,10 +22,26 @@ const Dashboard = () => {
 
   const fetchSessions = async () => {
     try {
+      setLoading(true);
+      setError(null);
       const { data } = await api.get('/session/all');
-      setSessions(data);
+      
+      // Temporary logging for debugging API response shape
+      console.log("Sessions API Response:", data);
+      
+      // Handle different response structures (local vs deployed)
+      if (Array.isArray(data)) {
+        setSessions(data);
+      } else if (data && Array.isArray(data.sessions)) {
+        setSessions(data.sessions);
+      } else {
+        console.warn("API response is not an array, defaulting to empty array");
+        setSessions([]);
+      }
     } catch (error) {
       console.error('Error fetching sessions', error);
+      setError('Failed to load past sessions. Please try again later.');
+      setSessions([]); // Ensure it's an array even on error
     } finally {
       setLoading(false);
     }
@@ -37,6 +56,20 @@ const Dashboard = () => {
     } catch (error) {
       console.error('Error creating session', error);
       setIsCreating(false);
+    }
+  };
+
+  const handleDeleteSession = async () => {
+    if (!deleteModal.sessionId) return;
+    setIsDeleting(true);
+    try {
+      await api.delete(`/session/${deleteModal.sessionId}`);
+      setSessions(sessions.filter(s => s._id !== deleteModal.sessionId));
+      setDeleteModal({ show: false, sessionId: null, sessionRole: '' });
+    } catch (error) {
+      console.error('Error deleting session', error);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -116,19 +149,22 @@ const Dashboard = () => {
             <div className="flex justify-center p-12">
               <Loader className="animate-spin text-blue-500" size={32} />
             </div>
-          ) : sessions.length === 0 ? (
+          ) : error ? (
+            <div className="glass-panel border border-red-500/10 rounded-2xl p-8 text-center text-red-400">
+              {error}
+            </div>
+          ) : !Array.isArray(sessions) || sessions.length === 0 ? (
             <div className="glass-panel border border-white/5 rounded-2xl p-12 text-center text-slate-400">
               No interview sessions yet. Create one to get started!
             </div>
           ) : (
             <div className="grid gap-4 max-h-[500px] overflow-y-auto pr-1">
-              {sessions.map((session) => (
+              {Array.isArray(sessions) && sessions.map((session) => (
                 <div 
                   key={session._id} 
-                  onClick={() => navigate(`/session/${session._id}`)}
-                  className="glass-panel border border-white/5 hover:border-blue-500/30 p-5 rounded-2xl cursor-pointer transition-all hover:bg-slate-800/50 group flex justify-between items-center"
+                  className="glass-panel border border-white/5 hover:border-blue-500/30 p-5 rounded-2xl cursor-pointer transition-all hover:bg-slate-800/50 group flex justify-between items-center relative"
                 >
-                  <div>
+                  <div onClick={() => navigate(`/session/${session._id}`)} className="flex-1">
                     <h3 className="text-lg font-semibold text-white group-hover:text-blue-400 transition-colors flex items-center gap-2">
                       {session.type === 'resume-based' && (
                         <FileText size={16} className="text-purple-400" />
@@ -144,13 +180,68 @@ const Dashboard = () => {
                       <span>{new Date(session.createdAt).toLocaleDateString()}</span>
                     </p>
                   </div>
-                  <ArrowRight className="text-slate-500 group-hover:text-blue-400 transition-colors transform group-hover:translate-x-1" />
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDeleteModal({ show: true, sessionId: session._id, sessionRole: session.role });
+                      }}
+                      className="p-2 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all"
+                      title="Delete Session"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                    <ArrowRight 
+                      onClick={() => navigate(`/session/${session._id}`)}
+                      className="text-slate-500 group-hover:text-blue-400 transition-colors transform group-hover:translate-x-1" 
+                    />
+                  </div>
                 </div>
               ))}
             </div>
           )}
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
+          <div className="glass-panel border border-red-500/20 rounded-3xl p-8 max-w-md w-full shadow-2xl animate-scale-in">
+            <div className="flex justify-between items-start mb-6">
+              <div className="bg-red-500/10 p-3 rounded-2xl">
+                <AlertTriangle className="text-red-500" size={28} />
+              </div>
+              <button 
+                onClick={() => setDeleteModal({ show: false, sessionId: null, sessionRole: '' })}
+                className="p-2 text-slate-500 hover:text-white transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <h3 className="text-2xl font-bold mb-2">Delete Session?</h3>
+            <p className="text-slate-400 mb-8">
+              Are you sure you want to delete the interview session for <span className="text-white font-semibold">"{deleteModal.sessionRole}"</span>? This action cannot be undone and will remove all associated questions.
+            </p>
+
+            <div className="flex gap-4">
+              <button 
+                onClick={() => setDeleteModal({ show: false, sessionId: null, sessionRole: '' })}
+                className="flex-1 px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold transition-all"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleDeleteSession}
+                disabled={isDeleting}
+                className="flex-1 px-4 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-semibold transition-all flex items-center justify-center gap-2"
+              >
+                {isDeleting ? <Loader className="animate-spin" size={20} /> : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
