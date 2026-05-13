@@ -1,17 +1,17 @@
 import React, { useContext, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext';
+import { useAuth } from '@clerk/clerk-react';
 import { Sparkles, Brain, Target, ArrowRight } from 'lucide-react';
 
 const Landing = () => {
-  const { user } = useContext(AuthContext);
+  const { isSignedIn, isLoaded } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) {
+    if (isLoaded && isSignedIn) {
       navigate('/dashboard');
     }
-  }, [user, navigate]);
+  }, [isLoaded, isSignedIn, navigate]);
 
   return (
     <div className="flex flex-col lg:flex-row items-center justify-between min-h-[calc(100vh-100px)] gap-12">
@@ -62,7 +62,7 @@ const Landing = () => {
 
           <div className="space-y-4">
             <Link
-              to="/register"
+              to="/sign-up"
               className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-blue-500/20 transform hover:-translate-y-0.5 transition-all duration-200"
             >
               Create Account
@@ -70,7 +70,7 @@ const Landing = () => {
             </Link>
             
             <Link
-              to="/login"
+              to="/sign-in"
               className="w-full flex items-center justify-center gap-2 bg-slate-800/50 border border-slate-700 hover:border-blue-500/50 text-white font-semibold py-3 px-4 rounded-xl transform hover:-translate-y-0.5 transition-all duration-200"
             >
               Sign In
@@ -78,7 +78,7 @@ const Landing = () => {
           </div>
 
           <p className="mt-6 text-center text-slate-500 text-xs">
-            Secure authentication with email OTP verification
+            Secure authentication powered by Clerk
           </p>
         </div>
       </div>

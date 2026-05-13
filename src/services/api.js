@@ -4,12 +4,23 @@ const api = axios.create({
   baseURL: `${import.meta.env.VITE_API_URL}/api`,
 });
 
-// Add a request interceptor to include the JWT token
+/**
+ * Request interceptor that attaches the Clerk session token
+ * to every outgoing API request as a Bearer token.
+ * Uses window.Clerk to get the token asynchronously.
+ */
 api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+  async (config) => {
+    try {
+      // Clerk attaches itself to window after initialization
+      if (window.Clerk?.session) {
+        const token = await window.Clerk.session.getToken();
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to get Clerk token:', error);
     }
     return config;
   },

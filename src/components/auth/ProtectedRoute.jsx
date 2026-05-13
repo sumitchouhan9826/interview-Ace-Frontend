@@ -1,17 +1,18 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
+import { useAuth } from '@clerk/clerk-react';
 
+/**
+ * ProtectedRoute component using Clerk authentication.
+ * Redirects to /login if user is not signed in.
+ */
 const ProtectedRoute = () => {
-  const token = localStorage.getItem('token');
-  const user = JSON.parse(localStorage.getItem('user'));
+  const { isSignedIn, isLoaded } = useAuth();
 
-  if (!token) {
+  if (!isLoaded) return null;
+
+  if (!isSignedIn) {
     return <Navigate to="/login" replace />;
-  }
-
-  if (user && !user.isVerified) {
-    // This case might be handled by the backend 403, but good to have here
-    return <Navigate to="/verify-otp" state={{ email: user.email }} replace />;
   }
 
   return <Outlet />;

@@ -1,35 +1,39 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext } from 'react';
+import { useUser, useClerk } from '@clerk/clerk-react';
 
 export const AuthContext = createContext();
 
+/**
+ * AuthProvider that wraps Clerk hooks to provide a consistent
+ * interface to the rest of the app. This preserves the existing
+ * { user, logout, loading } shape that components depend on.
+ */
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { user: clerkUser, isLoaded } = useUser();
+  const { signOut } = useClerk();
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    const storedToken = localStorage.getItem('token');
-    if (storedUser && storedToken) {
-      setUser(JSON.parse(storedUser));
-    }
-    setLoading(false);
-  }, []);
+  // Map Clerk user to the shape our app expects
+  const user = clerkUser
+    ? {
+        _id: clerkUser.id,
+        clerkId: clerkUser.id,
+        name: clerkUser.fullName || clerkUser.firstName || 'User',
+        email: clerkUser.primaryEmailAddress?.emailAddress || '',
+        profileImage:
+          clerkUser.imageUrl ||
+          `https://ui-avatars.com/api/?name=${encodeURIComponent(
+            clerkUser.fullName || 'User'
+          )}&background=random`,
+      }
+    : null;
 
-  const login = (userData, token) => {
-    localStorage.setItem('user', JSON.stringify(userData));
-    localStorage.setItem('token', token);
-    setUser(userData);
-  };
-
-  const logout = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    setUser(null);
+  const logout = async () => {
+    await signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
-      {!loading && children}
+    <AuthContext.Provider value={{ user, logout, loading: !isLoaded }}>
+      {children}
     </AuthContext.Provider>
   );
 };
