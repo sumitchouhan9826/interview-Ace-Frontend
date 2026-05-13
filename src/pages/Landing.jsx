@@ -1,17 +1,10 @@
-import React, { useState, useContext, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useContext, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { Sparkles, Brain, Target } from 'lucide-react';
+import { Sparkles, Brain, Target, ArrowRight } from 'lucide-react';
 
 const Landing = () => {
-  const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-
-  const { login, signup, user } = useContext(AuthContext);
+  const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -19,24 +12,6 @@ const Landing = () => {
       navigate('/dashboard');
     }
   }, [user, navigate]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    setIsLoading(true);
-    try {
-      if (isLogin) {
-        await login(email, password);
-      } else {
-        await signup(name, email, password);
-      }
-      navigate('/dashboard');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Authentication failed');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return (
     <div className="flex flex-col lg:flex-row items-center justify-between min-h-[calc(100vh-100px)] gap-12">
@@ -58,7 +33,7 @@ const Landing = () => {
             </div>
             <div>
               <h3 className="font-semibold text-lg mb-1">AI Q&A</h3>
-              <p className="text-sm text-slate-400">Smart questions powered by Gemini AI</p>
+              <p className="text-sm text-slate-400">Smart questions powered by AI</p>
             </div>
           </div>
           <div className="glass-panel p-6 rounded-2xl border border-white/5 flex items-start gap-4">
@@ -77,72 +52,33 @@ const Landing = () => {
         <div className="glass-panel p-8 rounded-3xl border border-white/10 shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
           
-          <h2 className="text-3xl font-bold mb-6 flex items-center gap-2">
+          <h2 className="text-3xl font-bold mb-4 flex items-center gap-2">
             <Sparkles className="text-blue-400" />
-            {isLogin ? 'Welcome Back' : 'Create Account'}
+            Get Started
           </h2>
-          
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-3 rounded-xl mb-6">
-              {error}
-            </div>
-          )}
+          <p className="text-slate-400 mb-8">
+            Create an account or sign in to start preparing for your dream job with AI-powered interview practice.
+          </p>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {!isLogin && (
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Full Name</label>
-                <input 
-                  type="text" 
-                  value={name} 
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                  placeholder="John Doe"
-                  required={!isLogin}
-                />
-              </div>
-            )}
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Email Address</label>
-              <input 
-                type="email" 
-                value={email} 
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                placeholder="you@example.com"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Password</label>
-              <input 
-                type="password" 
-                value={password} 
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
-                placeholder="••••••••"
-                required
-                minLength="6"
-              />
-            </div>
+          <div className="space-y-4">
+            <Link
+              to="/register"
+              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-blue-500/20 transform hover:-translate-y-0.5 transition-all duration-200"
+            >
+              Create Account
+              <ArrowRight size={18} />
+            </Link>
             
-            <button 
-              type="submit" 
-              disabled={isLoading}
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-blue-500/20 transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-70"
+            <Link
+              to="/login"
+              className="w-full flex items-center justify-center gap-2 bg-slate-800/50 border border-slate-700 hover:border-blue-500/50 text-white font-semibold py-3 px-4 rounded-xl transform hover:-translate-y-0.5 transition-all duration-200"
             >
-              {isLoading ? 'Processing...' : (isLogin ? 'Sign In' : 'Sign Up')}
-            </button>
-          </form>
+              Sign In
+            </Link>
+          </div>
 
-          <p className="mt-6 text-center text-slate-400 text-sm">
-            {isLogin ? "Don't have an account? " : "Already have an account? "}
-            <button 
-              onClick={() => setIsLogin(!isLogin)} 
-              className="text-blue-400 font-semibold hover:underline"
-            >
-              {isLogin ? 'Sign Up' : 'Sign In'}
-            </button>
+          <p className="mt-6 text-center text-slate-500 text-xs">
+            Secure authentication with email OTP verification
           </p>
         </div>
       </div>
